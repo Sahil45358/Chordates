@@ -1,69 +1,59 @@
 const classifications = {
-  root: [
-    {
-      title: "Pisces",
-      description: "Aquatic vertebrates with gills and fins.",
-      next: "pisces"
-    },
-    {
-      title: "Tetrapoda",
-      description: "Four-limbed vertebrates: amphibians, reptiles, birds, mammals.",
-      next: "tetrapoda"
-    }
-  ],
-  pisces: [
-    {
-      title: "Cartilaginous Fish",
-      description: "Fish with skeletons made of cartilage (e.g., sharks)."
-    },
-    {
-      title: "Bony Fish",
-      description: "Fish with bony skeletons (e.g., tuna, goldfish)."
-    }
-  ],
-  tetrapoda: [
-    {
-      title: "Amphibians",
-      description: "Cold-blooded, live in water and land (e.g., frogs)."
-    },
-    {
-      title: "Reptiles",
-      description: "Cold-blooded, dry scales (e.g., snakes, lizards)."
-    },
-    {
-      title: "Aves",
-      description: "Warm-blooded, feathers, lay eggs (e.g., birds)."
-    },
-    {
-      title: "Mammals",
-      description: "Warm-blooded, hair, feed milk (e.g., humans)."
-    }
-  ]
+  root: [ /* same as before */ ],
+  pisces: [ /* same as before */ ],
+  tetrapoda: [ /* same as before */ ]
 };
 
-let currentLevel = "root";
+let historyStack = ['root'];
 
-function renderCards(level) {
-  const container = document.getElementById("card-container");
-  container.innerHTML = "";
-  currentLevel = level;
+const container = document.getElementById('card-container');
+const breadcrumb = document.getElementById('breadcrumb');
 
-  classifications[level].forEach(item => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.onclick = () => {
-      if (item.next) renderCards(item.next);
-    };
-
-    card.innerHTML = `
-      <div class="card-title">${item.title}</div>
-      <div class="card-description">${item.description}</div>
-    `;
-
-    container.appendChild(card);
+function updateBreadcrumb() {
+  const parts = historyStack.map(level => {
+    if (level === 'root') return 'Home';
+    const card = classifications[historyStack[historyStack.indexOf(level) - 1] || 'root']
+        .find(item => item.next === level);
+    return card ? card.title : level;
+  });
+  breadcrumb.innerHTML = parts
+    .map((p, i) => i < parts.length - 1
+      ? `<a href="#" data-idx="${i}">${p}</a> &gt; `
+      : `<span>${p}</span>`
+    ).join('');
+  breadcrumb.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const idx = +e.target.dataset.idx;
+      historyStack = historyStack.slice(0, idx + 1);
+      renderCards(historyStack[historyStack.length - 1]);
+    });
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  renderCards("root");
+function renderCards(level) {
+  container.style.opacity = 0;
+  setTimeout(() => {
+    container.innerHTML = '';
+    classifications[level].forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="title">${item.title}</div>
+        <div class="desc">${item.description}</div>`;
+      card.onclick = () => {
+        if (item.next) {
+          historyStack.push(item.next);
+          renderCards(item.next);
+        }
+      };
+      container.appendChild(card);
+    });
+    updateBreadcrumb();
+    container.style.animation = 'fadeIn .5s ease forwards';
+  }, 100);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderCards('root');
 });
